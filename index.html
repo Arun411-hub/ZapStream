@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZapStream</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f8;--ink:#1b1f4b;--mute:#5b6090;--card:#fff;--line:#d3d8ec;--zap:#ffd400;--zapink:#1b1f4b;--err:#d94a38;--ok:#1f8a5b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12142e;--ink:#eef0ff;--mute:#9aa0d4;--card:#1c2044;--line:#333a73;--zapink:#12142e}}
+:root[data-theme="dark"]{--bg:#12142e;--ink:#eef0ff;--mute:#9aa0d4;--card:#1c2044;--line:#333a73;--zapink:#12142e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 'Instrument Sans',system-ui,sans-serif}
+.wrap{max-width:780px;margin:0 auto;padding:20px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0 34px;flex-wrap:wrap}
+.logo{font:800 24px 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.logo i{display:grid;place-items:center;width:32px;height:32px;background:var(--zap);color:var(--zapink);border-radius:9px}
+.logo svg{width:18px;height:18px}
+.right{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--mute)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--err);display:inline-block;margin-right:6px}
+.dot.on{background:var(--ok)}
+button{font:inherit;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 14px}
+.banner{background:var(--err);color:#fff;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
+h1{font:800 clamp(36px,7vw,58px)/1.02 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.035em;margin:0 0 14px}
+.sub{color:var(--mute);max-width:50ch;margin:0 0 30px}
+.zapbar{display:flex;gap:8px;background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:8px;box-shadow:6px 6px 0 var(--zap)}
+.zapbar input{flex:1;min-width:0;border:0;background:none;color:var(--ink);font:inherit;padding:10px 12px;outline:none}
+.go{background:var(--ink);color:var(--bg);border:0;border-radius:12px;padding:0 22px;font-weight:600;white-space:nowrap}
+:focus-visible{outline:3px solid var(--zap);outline-offset:2px}
+.msg{min-height:24px;margin:14px 4px 0;font-size:14px;color:var(--err)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:10px}
+[hidden]{display:none!important}
+.vid{display:flex;gap:16px;align-items:center}
+.thumb{width:180px;aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#4b53b8,#1b1f4b);flex:none;position:relative;overflow:hidden}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vid h2{font:600 19px/1.25 'Bricolage Grotesque',system-ui,sans-serif;margin:0 0 4px;word-break:break-word}
+.vid p{margin:0;color:var(--mute);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:18px}
+.stat{border:1.5px solid var(--line);border-radius:12px;padding:8px 12px}
+.stat span{display:block;font-size:13px;color:var(--mute)}
+.stat strong{font:600 18px 'Bricolage Grotesque',system-ui,sans-serif}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:12px;overflow:hidden;margin-top:18px}
+.seg button{background:none;border:0;color:var(--ink);padding:8px 16px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.times{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.times label{font-size:13px;color:var(--mute);display:grid;gap:4px}
+.times input{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 10px;font:inherit;width:120px}
+.fmts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0}
+.fmts label{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:block;font-weight:500}
+.fmts input{position:absolute;opacity:0}
+.fmts label:has(input:checked){border-color:var(--ink);background:var(--zap);color:#1b1f4b}
+.fmts label:has(input:focus-visible){outline:3px solid var(--ink)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dl{background:var(--zap);color:#1b1f4b;border:2px solid var(--ink);border-radius:12px;padding:13px;font-weight:600}
+.dl.alt{background:var(--ink);color:var(--bg)}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:14px}
+.bar div{height:100%;width:0;background:var(--ok);transition:width .3s}
+.status{font-size:14px;color:var(--mute);margin-top:8px;min-height:22px}
+.paper{background:#fff;color:#161616;padding:30px;border-radius:12px;margin-top:14px;font-family:Georgia,'Times New Roman',serif;line-height:1.55}
+.paper h1{font:700 26px/1.2 Georgia,serif;letter-spacing:0;margin:0 0 6px}
+.paper h2{font:700 18px/1.3 Georgia,serif;margin:22px 0 6px;padding-bottom:4px;border-bottom:1.5px solid #ccc;page-break-after:avoid}
+.paper h2 small{font-weight:400;color:#666;font-size:13px}
+.paper h3{font:700 15px/1.3 Georgia,serif;margin:14px 0 3px;page-break-after:avoid}
+.paper p{margin:4px 0}
+.paper ul,.paper ol{margin:6px 0;padding-left:22px}
+.paper li{margin:5px 0;page-break-inside:avoid}
+.pmeta{color:#555;margin:0 0 14px;font-size:14px}
+.pfoot{margin-top:24px;font-size:12px;color:#666}
+.ov{background:#eef3ff;border-left:4px solid #3b4cca;padding:10px 14px;margin:10px 0;border-radius:4px}
+.ex{background:#f6f6f6;border-left:3px solid #999;padding:6px 10px;margin:6px 0;font-size:14px;page-break-inside:avoid}
+.paper pre{background:#f1f1f1;padding:8px 10px;border-radius:4px;font:12.5px/1.4 Consolas,monospace;white-space:pre-wrap;margin:6px 0;page-break-inside:avoid}
+.rem{background:#fff8d6;border-radius:6px;padding:8px 12px;margin:10px 0;page-break-inside:avoid}
+.rem b{display:block;margin-bottom:2px}
+.warn{background:#ffe9e5;border-left:4px solid #d94a38;padding:10px 14px;margin:10px 0;font-size:14px}
+.paper table{width:100%;border-collapse:collapse;font-size:14px}
+.paper td{border:1px solid #ccc;padding:5px 8px;vertical-align:top;page-break-inside:avoid}
+.paper td:first-child{width:28%;font-weight:700}
+.q{margin:8px 0;page-break-inside:avoid}
+.q i{color:#1f6b4a}
+.note{margin-top:30px;font-size:13px;color:var(--mute)}
+@media(max-width:560px){.vid{flex-direction:column;align-items:flex-start}.thumb{width:100%}.go{padding:0 14px}.acts{grid-template-columns:1fr}}
+@media print{body *{visibility:hidden}#paper,#paper *{visibility:visible}#paper{position:absolute;left:0;top:0;width:100%;margin:0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo"><i><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></i>ZapStream</div>
+  <div class="right"><span><span class="dot" id="dot"></span><span id="srv">Checking...</span></span>
+  <button class="ghost" id="theme" type="button">Switch theme</button></div>
+</header>
+
+<div class="banner" id="offline" hidden>The backend is not running. Close and reopen this folder in VS Code and click "Allow" on the automatic task prompt, or run the task "ZapStream backend". Wait a few seconds after it starts.</div>
+
+<main>
+  <h1>Paste a link. Get the video or the notes.</h1>
+  <p class="sub">Download a full video or just one part, or turn a tutorial into a study PDF.</p>
+
+  <div class="zapbar">
+    <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." aria-label="Video page URL" autocomplete="off">
+    <button class="go" id="analyze" type="button">Find video</button>
+  </div>
+  <div class="msg" id="msg" role="alert"></div>
+
+  <section class="card" id="result" hidden>
+    <div class="vid">
+      <div class="thumb"><img id="thumb" alt="Video thumbnail" referrerpolicy="no-referrer"></div>
+      <div><h2 id="title"></h2><p id="channel"></p></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Duration</span><strong id="duration"></strong></div>
+      <div class="stat"><span>Views</span><strong id="views"></strong></div>
+      <div class="stat"><span>Likes</span><strong id="likes"></strong></div>
+      <div class="stat"><span>Source</span><strong id="site"></strong></div>
+    </div>
+
+    <div class="seg" role="group" aria-label="What to use">
+      <button type="button" data-m="full" aria-pressed="true">Full video</button>
+      <button type="button" data-m="part" aria-pressed="false">Specific part</button>
+    </div>
+    <div class="times" id="times" hidden>
+      <label>Start<input id="t0" placeholder="0:30" inputmode="numeric"></label>
+      <label>End<input id="t1" placeholder="4:45" inputmode="numeric"></label>
+    </div>
+
+    <div class="fmts" id="fmts" role="radiogroup" aria-label="Choose format"></div>
+    <div class="acts">
+      <button class="dl" id="download" type="button">Download video</button>
+      <button class="dl alt" id="notesBtn" type="button">Create study PDF</button>
+    </div>
+    <div class="bar" id="barWrap" hidden><div id="bar"></div></div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </section>
+
+  <div id="paperWrap" hidden>
+    <button class="ghost" id="pdfAgain" type="button" style="margin-top:22px">Download PDF again</button>
+    <div class="paper" id="paper"></div>
+  </div>
+
+  <p class="note">Use ZapStream only for videos you own or have permission to save. Respect each site's terms of use.</p>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const API = "http://127.0.0.1:8000";
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let current = null, mode = "full", notes = null;
+
+// Theme
+$("theme").onclick = () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme:dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+};
+
+// Server status
+async function health(){
+  try {
+    const h = await (await fetch(API + "/api/health")).json();
+    $("dot").classList.add("on");
+    $("srv").textContent = "Server connected  -  " + (h.ai ? "AI: " + h.ai : "AI off");
+    $("offline").hidden = true;
+  } catch(e){
+    $("dot").classList.remove("on"); $("srv").textContent = "Server offline"; $("offline").hidden = false;
+  }
+}
+health(); setInterval(health, 5000);
+
+const setMsg = t => { $("msg").textContent = t || ""; };
+const num = n => (n === null || n === undefined) ? "Hidden" : Number(n).toLocaleString("en-IN");
+const validUrl = s => { try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:"; } catch(e){ return false; } };
+const parseTime = s => {
+  s = s.trim(); if (!s) return 0;
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(s)) return NaN;
+  return s.split(":").reduce((a, v) => a * 60 + Number(v), 0);
+};
+// Only a real network failure counts as "backend not reachable"
+const isNetErr = e => e instanceof TypeError && /fetch|network|load failed/i.test(e.message || "");
+const errMsg = e => isNetErr(e)
+  ? "Can't reach the backend. Check that the 'ZapStream backend' terminal is running."
+  : (e && e.message ? e.message : "Something went wrong.");
+
+// Find video
+$("analyze").onclick = async () => {
+  const url = $("url").value.trim();
+  setMsg(""); $("result").hidden = true; $("paperWrap").hidden = true;
+  if (!url) return setMsg("Paste a video link first.");
+  if (!validUrl(url)) return setMsg("That doesn't look like a link. It should start with https://");
+  const btn = $("analyze"); btn.disabled = true; btn.textContent = "Searching...";
+  try {
+    const res = await fetch(`${API}/api/info?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error("Could not read this link. Check it and try again.");
+    const info = await res.json();
+    current = { url, info };
+    $("title").textContent = info.title || "Untitled";
+    $("channel").textContent = info.channel || "Unknown channel";
+    $("duration").textContent = info.duration;
+    $("views").textContent = num(info.views);
+    $("likes").textContent = num(info.likes);
+    $("site").textContent = info.site || "-";
+    const img = $("thumb");
+    img.style.display = info.thumbnail ? "block" : "none";
+    img.onerror = () => { img.style.display = "none"; };
+    img.src = info.thumbnail || "";
+    const box = $("fmts"); box.innerHTML = "";
+    info.formats.forEach((f, i) => {
+      const l = document.createElement("label");
+      const r = document.createElement("input");
+      r.type = "radio"; r.name = "fmt"; r.value = f.id; r.checked = i === 0;
+      l.append(r, f.label); box.append(l);
+    });
+    $("barWrap").hidden = true; $("status").textContent = "";
+    $("result").hidden = false;
+  } catch(e){ setMsg(errMsg(e)); }
+  finally { btn.disabled = false; btn.textContent = "Find video"; }
+};
+$("url").addEventListener("keydown", e => { if (e.key === "Enter") $("analyze").click(); });
+
+// Full video / specific part
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("times").hidden = mode !== "part";
+});
+
+function getRange(){
+  if (mode !== "part") return { start: 0, end: 0 };
+  const s = parseTime($("t0").value), e = parseTime($("t1").value);
+  if (isNaN(s) || isNaN(e) || !$("t1").value.trim()) throw new Error("Enter start and end time like 1:30 and 4:45.");
+  if (e <= s) throw new Error("End time must be after the start time.");
+  const len = current.info.seconds;
+  if (len && e > len + 1) throw new Error("End time is beyond the video length (" + current.info.duration + ").");
+  return { start: s, end: e };
+}
+
+// Jobs
+function busy(on){ ["download", "notesBtn", "analyze"].forEach(id => $(id).disabled = on); }
+function progress(p, msg){
+  $("barWrap").hidden = false;
+  $("bar").style.width = Math.max(p || 0, 4) + "%";
+  $("status").textContent = msg || "";
+}
+async function runJob(endpoint, body){
+  busy(true); progress(0, "Starting...");
+  const r = await fetch(API + endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error("Could not start the job.");
+  const { id } = await r.json();
+  let fails = 0;
+  while (true){
+    await sleep(1000);
+    let j;
+    try {
+      const jr = await fetch(`${API}/api/job/${id}`);
+      if (!jr.ok) throw new Error("The server lost this job. Please try again.");
+      j = await jr.json(); fails = 0;
+    } catch(e){
+      if (isNetErr(e) && ++fails < 6) continue;   // tolerate short hiccups
+      throw e;
+    }
+    progress(j.progress, j.message);
+    if (j.status === "done") return { id, result: j.result };
+    if (j.status === "error") throw new Error(j.error || "Something went wrong.");
+  }
+}
+function fail(e){
+  console.error(e);
+  $("barWrap").hidden = true; $("status").textContent = ""; setMsg(errMsg(e));
+}
+
+// Download video / clip
+$("download").onclick = async () => {
+  if (!current) return; setMsg("");
+  try {
+    const { start, end } = getRange();
+    const fmt = document.querySelector('input[name="fmt"]:checked').value;
+    const { id } = await runJob("/api/download", { url: current.url, format: fmt, start, end });
+    const a = document.createElement("a");
+    a.href = `${API}/api/file/${id}`; document.body.appendChild(a); a.click(); a.remove();
+    progress(100, "Done. Your download has started.");
+  } catch(e){ fail(e); }
+  finally { busy(false); }
+};
+
+// Study PDF
+function el(tag, text, cls){ const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+const arr = x => Array.isArray(x) ? x : [];
+const str = x => typeof x === "string" ? x : (x && typeof x === "object" ? Object.values(x).join(": ") : String(x ?? ""));
+
+function renderNotes(n){
+  const p = $("paper"); p.innerHTML = "";
+  const add = (tag, text, cls, parent) => { const e = el(tag, text, cls); (parent || p).append(e); return e; };
+  const list = (tag, items, parent) => { const u = add(tag, "", "", parent); arr(items).forEach(t => add("li", str(t), "", u)); return u; };
+
+  add("h1", n.title || "Study notes");
+  add("p", [n.channel, n.duration, n.range && ("Covers " + n.range)].filter(Boolean).join("  -  "), "pmeta");
+
+  if (!n.ai) add("div", "Basic mode: AI is not connected, so these notes are only extracted sentences. Start Ollama or add a Claude key for clear explanations, a glossary and a quiz.", "warn");
+
+  if (n.overview){
+    const o = add("div", "", "ov"); o.append(el("b", "Overview")); add("p", n.overview, "", o);
+  }
+  if (arr(n.prerequisites).length){ add("h3", "Before you start"); list("ul", n.prerequisites); }
+
+  arr(n.sections).forEach(s => {
+    const h = add("h2", s.title || "Part"); h.append(el("small", "   " + (s.time || "")));
+    if (s.summary) add("p", s.summary);
+    arr(s.concepts).forEach(c => {
+      if (typeof c === "string"){ add("p", c); return; }
+      add("h3", str(c.name));
+      add("p", str(c.explanation));
+      if (c.example) add("div", "Example: " + str(c.example), "ex");
+    });
+    if (arr(s.steps).length){ add("h3", "Steps"); list("ol", s.steps); }
+    arr(s.code).forEach(c => add("pre", str(c)));
+    if (arr(s.takeaways).length){
+      const r = add("div", "", "rem"); r.append(el("b", "Remember")); list("ul", s.takeaways, r);
+    }
+  });
+
+  if (arr(n.cheatsheet).length){ add("h2", "Quick revision sheet"); list("ul", n.cheatsheet); }
+
+  if (arr(n.glossary).length){
+    add("h2", "Glossary");
+    const t = add("table");
+    arr(n.glossary).forEach(g => {
+      const r = add("tr", "", "", t);
+      add("td", str(g && g.term), "", r); add("td", str(g && g.meaning), "", r);
+    });
+  }
+
+  if (arr(n.quiz).length){
+    add("h2", "Test yourself");
+    arr(n.quiz).forEach((q, i) => {
+      const d = add("div", "", "q");
+      d.append(el("b", (i + 1) + ". " + str(q && q.q)));
+      const a = el("div", "", ""); a.append(el("i", "Answer: " + str(q && q.a))); d.append(a);
+    });
+  }
+
+  add("p", n.ai
+    ? "Generated by ZapStream with AI from the video transcript. Check important details against the video."
+    : "Auto-extracted by ZapStream from the video captions.", "pfoot");
+}
+
+async function savePdf(){
+  if (typeof html2pdf === "undefined"){ window.print(); return; }
+  const name = ((notes && notes.title) || "study-notes").replace(/[\\/:*?"<>|]/g, "").slice(0, 60) + " - study notes.pdf";
+  try {
+    await html2pdf().set({
+      margin: 12, filename: name,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 1.5, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"], avoid: ["h2", "li"] }
+    }).from($("paper")).save();
+  } catch(e){
+    console.error(e);
+    window.print();   // fallback: choose "Save as PDF"
+  }
+}
+
+$("notesBtn").onclick = async () => {
+  if (!current) return; setMsg("");
+  let result;
+  try {
+    const { start, end } = getRange();
+    ({ result } = await runJob("/api/notes", { url: current.url, start, end }));
+  } catch(e){ fail(e); busy(false); return; }
+
+  try {
+    notes = result; renderNotes(result);
+    $("paperWrap").hidden = false;
+    progress(98, "Saving PDF...");
+    await savePdf();
+    progress(100, "Study PDF downloaded. A preview is below.");
+  } catch(e){
+    console.error(e);
+    $("barWrap").hidden = true; $("status").textContent = "";
+    setMsg("Notes were created but could not be shown: " + (e.message || e));
+  } finally { busy(false); }
+};
+$("pdfAgain").onclick = savePdf;
+</script>
+</body>
+</html>
